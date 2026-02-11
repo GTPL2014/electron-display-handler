@@ -1,65 +1,41 @@
-const { app, BrowserWindow, screen } = require('electron')
+const { app, BrowserWindow, screen, ipcMain } = require('electron')
+const path = require('path')
 
 let mainWindow
 let projectorWindow
 
-const log = (...args) => {
-    console.log('[MAIN]', ...args)
-}
-
-const createWindows = () => {
-    log('Creating windows...')
+function createWindows() {
 
     const displays = screen.getAllDisplays()
     const primaryDisplay = screen.getPrimaryDisplay()
 
-    log('Total displays detected:', displays.length)
-    displays.forEach((d, i) => {
-        log(
-            `Display ${i}`,
-            'id:', d.id,
-            'bounds:', d.bounds,
-            'primary:', d.id === primaryDisplay.id
-        )
-    })
+    // Close old windows if recreating
+    if (mainWindow) mainWindow.close()
+    if (projectorWindow) projectorWindow.close()
 
-    // Close old windows if they exist (important when re-creating)
-    if (mainWindow) {
-        log('Closing existing main window')
-        mainWindow.close()
-        mainWindow = null
-    }
-
-    if (projectorWindow) {
-        log('Closing existing projector window')
-        projectorWindow.close()
-        projectorWindow = null
-    }
-
-    // Create main (laptop) window
-    log('Creating main window on primary display')
-
+    // Main (laptop) window
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
-        x: primaryDisplay.bounds.x + 100,
-        y: primaryDisplay.bounds.y + 100,
+        x: primaryDisplay.bounds.x + 50,
+        y: primaryDisplay.bounds.y + 50,
         webPreferences: {
-            nodeIntegration: true
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false
         }
     })
 
     mainWindow.loadFile('index.html')
 
-    // Create projector window if available
+    // Projector window if second display exists
     if (displays.length > 1) {
+
         const projectorDisplay = displays.find(
             d => d.id !== primaryDisplay.id
         )
 
         if (projectorDisplay) {
-            log('Creating projector window on display id:', projectorDisplay.id)
-
             projectorWindow = new BrowserWindow({
                 x: projectorDisplay.bounds.x,
                 y: projectorDisplay.bounds.y,
@@ -67,57 +43,40 @@ const createWindows = () => {
                 height: projectorDisplay.bounds.height,
                 fullscreen: true,
                 webPreferences: {
-                    nodeIntegration: true
+                    preload: path.join(__dirname, 'preload.js'),
+                    contextIsolation: true,
+                    nodeIntegration: false
                 }
             })
 
             projectorWindow.loadFile('show.html')
-        } else {
-            log('No non-primary display found')
         }
-    } else {
-        log('No external display detected')
     }
 }
 
+// IPC Forwarder
+ipcMain.on('counter-update', (event, value) => {
+    if (projectorWindow) {
+        projectorWindow.webContents.send('update-counter', value)
+    }
+})
+
 app.whenReady().then(() => {
-    log('App is ready')
 
     createWindows()
 
-    // Detect display changes (plug / unplug)
-    screen.on('display-added', (event, newDisplay) => {
-        log('Display added:', newDisplay.id)
+    screen.on('display-added', () => {
         createWindows()
     })
-    screen.on('display-metrics-changed', (e, display, metrics) => {
-        log('display-metrics-changed', display.id, metrics)
-        // recreateIfNeeded()
-    })
-    screen.on('display-removed', (event, oldDisplay) => {
-        log('Display removed:', oldDisplay.id)
 
+    screen.on('display-removed', () => {
         if (projectorWindow) {
-            log('Closing projector window due to display removal')
             projectorWindow.close()
             projectorWindow = null
         }
     })
 
-    setInterval(() => {
-        const displays = screen.getAllDisplays()
-        log(
-            'Heartbeat → displays:',
-            displays.map(d => ({
-                id: d.id,
-                bounds: d.bounds
-            }))
-        )
-    }, 3000)
-
-
     app.on('activate', () => {
-        log('App activated')
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindows()
         }
@@ -125,7 +84,6 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-    log('All windows closed')
     if (process.platform !== 'darwin') {
         app.quit()
     }

@@ -502,9 +502,9 @@
       </div>
 
       <div class="controls" id="controls" style="display: none">
-        <button class="control-btn" onclick="openMirrorWindow()" id="mirror-win" style="display: none">
+        <!-- <button class="control-btn" onclick="openMirrorWindow()" id="mirror-win" style="display: none">
           🪟 Mirror Window
-        </button>
+        </button> -->
         <div class="nav-controls">
           <button class="control-btn" id="prevBtn" onclick="previousSlide()">
             ⬅️ <span>Previous</span>
@@ -548,7 +548,6 @@
 
   <script>
     let presentations = [];
-    let userRole = ""; // default role, will be overridden by URL param if present
     const isElectron = typeof window.api !== 'undefined';
 
     // Sync functions
@@ -588,14 +587,22 @@
       }
     }
 
+    let url = "https://stage-api.cleverattiskills.com";
+    let courseId = "";
+    let token = "";
+    let userRole = "";
+
+    if (window.api && window.api.onUrlParams) {
+      window.api.onUrlParams((params) => {
+        console.log('🔗 Received URL parameters:', params);
+        courseId = params?.courseId;
+        token = params?.token;
+        userRole = params?.role;
+      });
+    }
+
     async function loadPresentations() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const courseId = params.get("courseId") ?? "68f0d57c3465b219d5f34a6a";
-        const url = "https://stage-api.cleverattiskills.com";
-        const token = params.get("token") ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZjBkNTI0MzQ2NWIyMTlkNWYzNDlhYiIsImlhdCI6MTc3MDQ0NjM1NX0.oxqjmDG-trAcYezLJw9bZIbZI032iP2tdZ1ji1I-_5s";
-        userRole = params.get("role") ?? "teacher";
-
         const response = await fetch(
           `${url}/api/course/course-detail/${courseId}`,
           {

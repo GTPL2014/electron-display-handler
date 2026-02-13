@@ -1,9 +1,6 @@
 const { app, BrowserWindow, screen, ipcMain } = require('electron')
 const path = require('path')
 
-// Handle Squirrel events on Windows
-if (require('electron-squirrel-startup')) app.quit()
-
 let mainWindow
 let projectorWindow
 let launchUrl = null // Store URL parameters from deep linking

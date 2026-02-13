@@ -15,8 +15,9 @@ function createWindows() {
 
     // Main (laptop) window
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        // width: 800,
+        // height: 600,
+        fullScreen: true,
         x: primaryDisplay.bounds.x + 50,
         y: primaryDisplay.bounds.y + 50,
         webPreferences: {
@@ -26,7 +27,7 @@ function createWindows() {
         }
     })
 
-    mainWindow.loadFile('index.html')
+    mainWindow.loadFile('course.html')
 
     // Projector window if second display exists
     if (displays.length > 1) {
@@ -54,11 +55,28 @@ function createWindows() {
     }
 }
 
-// IPC Forwarder
-ipcMain.on('counter-update', (event, value) => {
-    if (projectorWindow) {
-        projectorWindow.webContents.send('update-counter', value)
+// IPC Handlers for slide synchronization
+ipcMain.on('slide-change', (event, data) => {
+    if (projectorWindow && !projectorWindow.isDestroyed()) {
+        projectorWindow.webContents.send('update-slide', data)
     }
+})
+
+ipcMain.on('presentation-load', (event, data) => {
+    if (projectorWindow && !projectorWindow.isDestroyed()) {
+        projectorWindow.webContents.send('load-presentation', data)
+    }
+})
+
+ipcMain.on('video-sync', (event, data) => {
+    if (projectorWindow && !projectorWindow.isDestroyed()) {
+        projectorWindow.webContents.send('sync-video', data)
+    }
+})
+
+// Check if projector window exists
+ipcMain.handle('has-projector', () => {
+    return projectorWindow && !projectorWindow.isDestroyed()
 })
 
 app.whenReady().then(() => {

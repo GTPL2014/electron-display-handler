@@ -6,30 +6,225 @@
     <title>Projector Display</title>
 
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        video::-webkit-media-controls-volume-slider,
+        video::-webkit-media-controls-mute-button {
+            display: none !important;
+        }
+
         body {
             margin: 0;
-            background: black;
+            background: #000;
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-size: 150px;
-            font-family: Arial, sans-serif;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            position: relative;
+        }
+
+        .slide-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .slide-content img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .slide-content video {
+            position: absolute;
+            object-fit: contain;
+        }
+
+        .slide-counter {
+            z-index: 9999;
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .welcome-message h2 {
+            font-size: 48px;
+            margin-bottom: 16px;
+            font-weight: 300;
+        }
+
+        .welcome-message p {
+            font-size: 24px;
+            font-weight: 300;
+            opacity: 0.7;
+        }
+
+        .loading {
+            opacity: 0.5;
         }
     </style>
 </head>
 
 <body>
 
-    <div id="count">0</div>
+    <div class="slide-container">
+        <div class="slide-content" id="slideContent">
+            <div class="welcome-message">
+                <h2>🎓 Ready to Present</h2>
+                <p>Waiting for presentation to start...</p>
+            </div>
+        </div>
+        <div class="slide-counter" id="slideCounter">Ready</div>
+    </div>
 
     <script>
-        const countEl = document.getElementById('count')
+        const slideContentEl = document.getElementById('slideContent')
+        const slideCounterEl = document.getElementById('slideCounter')
 
-        window.api.onCounterUpdate((value) => {
-            countEl.innerText = value
+        let currentPresentation = null
+        let currentSlide = 0
+
+        // Listen for presentation load
+        window.api.onPresentationLoad((data) => {
+            currentPresentation = data
+            currentSlide = 0
+            updateSlide()
         })
+
+        // Listen for slide changes
+        window.api.onSlideUpdate((data) => {
+            currentSlide = data.slideIndex
+            updateSlide()
+        })
+
+        // Listen for video sync events
+        window.api.onVideoSync((data) => {
+            // console.log('Video sync:', data)
+            syncVideo(data)
+        })
+
+        function updateSlide() {
+            if (!currentPresentation || !currentPresentation.slides_content) {
+                return
+            }
+
+            const slide = currentPresentation.slides_content[currentSlide]
+            const totalSlides = currentPresentation.slides_content.length
+
+            // Update slide image
+            slideContentEl.innerHTML = `<img src="${slide}" alt="Slide ${currentSlide + 1}">`
+
+            // Update counter
+            slideCounterEl.textContent = `${currentSlide + 1} / ${totalSlides}`
+
+            // Add videos for this slide if any
+            addVideosToSlide(currentSlide + 1)
+        }
+
+        function addVideosToSlide(slideNumber) {
+            if (!currentPresentation || !currentPresentation.videos_content) {
+                return
+            }
+
+            const videos = currentPresentation.videos_content.filter(v => v.slide === slideNumber);
+
+            videos.forEach((videoData, index) => {
+                const video = document.createElement('video')
+                video.id = `video-${videoData.slide}-${index}`
+                video.src = videoData.file
+                video.muted = true
+                video.playsInline = true
+
+                // Position video based on data
+                video.style.position = 'absolute'
+                video.style.left = videoData.x
+                video.style.top = videoData.y
+                video.style.width = videoData.width
+                video.style.height = videoData.height
+                video.style.objectFit = 'contain'
+
+                slideContentEl.appendChild(video)
+            })
+        }
+
+        function syncVideo(data) {
+            const trySync = () => {
+                const video = document.getElementById(data.id)
+
+                if (!video) {
+                    // console.warn("Video not ready yet, retrying...")
+                    setTimeout(trySync, 100)
+                    return
+                }
+
+                applySync(video, data)
+            }
+
+            trySync()
+        }
+
+        function applySync(video, data) {
+            const { type, currentTime, paused, volume, muted, playbackRate } = data
+
+            switch (type) {
+                case 'play':
+                    video.play().catch(console.error)
+                    break
+
+                case 'pause':
+                    video.pause()
+                    break
+
+                case 'timeupdate':
+                    video.currentTime = currentTime
+                    break
+
+                case 'volumechange':
+                    video.volume = volume
+                    video.muted = muted
+                    break
+
+                case 'ratechange':
+                    video.playbackRate = playbackRate
+                    break
+            }
+        }
+
     </script>
 
 </body>

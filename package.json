@@ -1,16 +1,145 @@
 {
-  "name": "my-electron-app",
+  "name": "presentation-viewer",
+  "productName": "Presentation Viewer Pro",
   "version": "1.0.0",
+  "description": "Professional PowerPoint Presentation Viewer with Projector Sync",
   "main": "index.js",
-  "description": "A simple Electron application",
-  "author": "Your Name <you@example.com>",
+  "author": "Ankit Yadav <ankityadav.codes@gmail.com>",
+  "license": "MIT",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder build --win --publish never",
+    "build:mac": "electron-builder build --mac --publish never",
+    "build:linux": "electron-builder build --linux --publish never",
+    "build:all": "electron-builder build -mwl --publish never",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "keywords": [],
-  "license": "ISC",
+  "build": {
+    "appId": "com.cleveratti.presentationviewer",
+    "productName": "Presentation Viewer Pro",
+    "copyright": "Copyright © 2026 ${author}",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/*.md",
+      "!dist",
+      "!build",
+      "!node_modules",
+      "!.vscode",
+      "!.git"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "publisherName": "Cleveratti Skills",
+      "verifyUpdateCodeSignature": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Presentation Viewer Pro",
+      "license": "LICENSE.txt",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": true,
+      "perMachine": false,
+      "include": "build/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.education",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "icon": "build/icons",
+      "category": "Education",
+      "maintainer": "Ankit Yadav <ankityadav.codes@gmail.com>",
+      "vendor": "Cleveratti Skills",
+      "synopsis": "Professional PowerPoint Presentation Viewer",
+      "description": "A professional presentation viewer with projector sync capabilities"
+    },
+    "protocols": [
+      {
+        "name": "Presentation Viewer Protocol",
+        "schemes": [
+          "presentationviewer",
+          "pptviewer"
+        ],
+        "role": "Viewer"
+      }
+    ]
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
@@ -20,7 +149,8 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron/fuses": "^1.8.0",
-    "electron": "^40.2.1"
+    "electron": "^40.2.1",
+    "electron-builder": "^24.9.1"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1"

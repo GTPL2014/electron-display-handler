@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PowerPoint Viewer - Teachers Portal</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      line-height: normal !important;
+    }
+
+    ul,
+    ol {
+      padding: revert;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #667eea 100%);
+      display: flex;
+      flex-direction: column;
+      line-height: normal !important;
+    }
+
+    p {
+      line-height: normal !important;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+      color: #fff;
+    }
+
+    .presentation-info {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      padding: 2rem;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .presentation-list {
+      width: 300px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+
+    .presentation-list h2 {
+      margin-bottom: 1rem;
+      color: #333;
+      font-size: 1.2rem;
+    }
+
+    .ppt-item {
+      padding: 1rem;
+      background: white;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      position: relative;
+    }
+
+    .ppt-item:hover {
+      transform: translateY(-2px);
+      border-color: #667eea;
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+    }
+
+    .ppt-item.active {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .ppt-item.loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 1rem;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ccc;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: translateY(-50%) rotate(0deg);
+      }
+
+      100% {
+        transform: translateY(-50%) rotate(360deg);
+      }
+    }
+
+    .ppt-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .ppt-meta {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .ppt-item.active .ppt-meta {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .viewer-container {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide-viewer {
+      flex: 1;
+      position: relative;
+      background: #f8f9fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 500px;
+      width: 100%;
+      max-height: 100px;
+    }
+
+    .fullscreen-slide {
+      align-items: flex-start !important;
+    }
+
+    .slide {
+      /* width: 100%; */
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      /* padding: 2rem;
+            margin: 1rem; */
+      aspect-ratio: 16/9;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide img {
+      /* width: 100%;
+            height: 100%; */
+      object-fit: contain;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .loading-indicator.show {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e3e3e3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .controls {
+      background: white;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #eee;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .control-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .control-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .control-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .slide-counter {
+      background: #f8f9fa;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      color: #666;
+    }
+
+    .fullscreen-btn {
+      background: #28a745;
+      background: linear-gradient(135deg, #28a745, #20c997);
+    }
+
+    .play-btn {
+      background: #dc3545;
+      background: linear-gradient(135deg, #dc3545, #fd7e14);
+    }
+
+    .no-presentation {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 1.2rem;
+    }
+
+    .no-presentation i {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Fullscreen styles */
+    .fullscreen-mode {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      border-radius: 0;
+    }
+
+    .fullscreen-mode .slide-viewer {
+      flex: 1;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fullscreen-mode .slide {
+      /* max-width: 100vw;
+            max-height: 100vh; */
+      border-radius: 0;
+      box-shadow: none;
+      margin: 0;
+    }
+
+    .fullscreen-controls {
+      position: fixed;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 0.75rem;
+      border-radius: 50px;
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+      z-index: 1001;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .fullscreen-mode:hover .fullscreen-controls {
+      opacity: 1;
+    }
+
+    .fullscreen-controls .control-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    .fullscreen-controls .slide-counter {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    /* Exit button in top right corner */
+    .exit-fullscreen-corner {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1002;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .fullscreen-mode:hover .exit-fullscreen-corner {
+      opacity: 1;
+    }
+
+    /* Hidden preload container */
+    .preload-container {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      visibility: hidden;
+    }
+
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: column;
+        padding: 1rem;
+      }
+
+      .presentation-list {
+        width: 100%;
+        max-height: 200px;
+      }
+
+      .slide {
+        padding: 1rem;
+      }
+
+      .controls,
+      .fullscreen-controls {
+        flex-direction: column;
+        gap: 7rem;
+        padding: 1rem;
+      }
+
+      .fullscreen-controls {
+        bottom: 10px;
+        padding: 0.8rem;
+        border-radius: 15px;
+        /* width: 95%; */
+      }
+
+      .nav-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .control-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+      }
+
+      span {
+        display: none;
+      }
+
+      .presentation-info {
+        display: none;
+      }
+
+      .notes-container {
+        display: none !important;
+      }
+
+      .slide-viewer {
+        min-height: 200px;
+      }
+
+      #mirror-win,
+      #playBtn {
+        display: none !important;
+      }
+
+      .fullscreen-btn {
+        display: none !important;
+      }
+
+      .no-presentation {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>📚 Courses</h1>
+    <div class="presentation-info" id="currentPptInfo">
+      Select a module to begin
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="presentation-list">
+      <h2 id="courseTitle">📋 Course</h2>
+      <div id="pptList"></div>
+    </div>
+    <div class="viewer-container">
+      <div class="slide-viewer" id="slideViewer">
+        <div>
+          <div class="no-presentation">
+            <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5">
+              📊
+            </div>
+            <div>Select a module from the list to start viewing</div>
+          </div>
+
+          <div class="loading-indicator" id="loadingIndicator">
+            <div class="spinner"></div>
+            <div>Loading module...</div>
+          </div>
+        </div>
+        <div class="notes-container" id="notesContainer" style="
+              background: #fff;
+              border-radius: 10px;
+              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+              padding: 1rem;
+              margin: 1rem 0;
+              max-height: 99%;
+              max-width: 33%;
+              min-width: 33%;
+              overflow-y: auto;
+              font-size: 0.9rem;
+              color: #333;
+              display: none;
+            ">
+          <div style="margin-bottom: 20px">
+            <h3>Teacher's Notes</h3>
+          </div>
+          <div id="noteContent"></div>
+        </div>
+      </div>
+
+      <div class="controls" id="controls" style="display: none">
+        <button class="control-btn" onclick="openMirrorWindow()" id="mirror-win" style="display: none">
+          🪟 Mirror Window
+        </button>
+        <div class="nav-controls">
+          <button class="control-btn" id="prevBtn" onclick="previousSlide()">
+            ⬅️ <span>Previous</span>
+          </button>
+          <div class="slide-counter" id="slideCounter">1 / 1</div>
+          <button class="control-btn" id="nextBtn" onclick="nextSlide()">
+            <span>Next</span> ➡️
+          </button>
+        </div>
+        <div class="nav-controls">
+          <button class="control-btn play-btn" id="playBtn" onclick="togglePresentation()">
+            ▶️ <span>Play</span>
+          </button>
+          <button class="control-btn fullscreen-btn" onclick="toggleFullscreen()">
+            🔍 <span>Fullscreen</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fullscreen controls (initially hidden) -->
+      <div class="fullscreen-controls" id="fullscreenControls" style="display: none">
+        <button class="control-btn" id="fsPrevBtn" onclick="previousSlide()">
+          ⬅️
+        </button>
+        <div class="slide-counter" id="fsSlideCounter">1 / 1</div>
+        <button class="control-btn" id="fsNextBtn" onclick="nextSlide()">
+          ➡️
+        </button>
+        <button class="control-btn play-btn" id="fsPlayBtn" onclick="togglePresentation()">
+          ▶️
+        </button>
+        <button class="control-btn exit-fullscreen-btn" onclick="toggleFullscreen()">
+          ↩️ <span>Exit</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden container for preloading images -->
+  <div class="preload-container" id="preloadContainer"></div>
+
+  <script>
+    let presentations = [];
+    let userRole = ""; // default role, will be overridden by URL param if present
+    const isElectron = typeof window.api !== 'undefined';
+
+    // Sync functions
+    async function syncPresentationToProjector(presentation) {
+      if (!isElectron) return;
+      try {
+        const hasProjector = await window.api.hasProjector();
+        if (hasProjector) {
+          window.api.sendPresentationLoad(presentation);
+        }
+      } catch (error) {
+        console.error('Error syncing presentation:', error);
+      }
+    }
+
+    async function syncSlideToProjector(slideIndex) {
+      if (!isElectron) return;
+      try {
+        const hasProjector = await window.api.hasProjector();
+        if (hasProjector) {
+          window.api.sendSlideChange({ slideIndex });
+        }
+      } catch (error) {
+        console.error('Error syncing slide:', error);
+      }
+    }
+
+    async function syncVideoToProjector(videoData) {
+      if (!isElectron) return;
+      try {
+        const hasProjector = await window.api.hasProjector();
+        if (hasProjector) {
+          window.api.sendVideoSync(videoData);
+        }
+      } catch (error) {
+        console.error('Error syncing video:', error);
+      }
+    }
+
+    async function loadPresentations() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const courseId = params.get("courseId") ?? "68f0d57c3465b219d5f34a6a";
+        const url = "https://stage-api.cleverattiskills.com";
+        const token = params.get("token") ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZjBkNTI0MzQ2NWIyMTlkNWYzNDlhYiIsImlhdCI6MTc3MDQ0NjM1NX0.oxqjmDG-trAcYezLJw9bZIbZI032iP2tdZ1ji1I-_5s";
+        userRole = params.get("role") ?? "teacher";
+
+        const response = await fetch(
+          `${url}/api/course/course-detail/${courseId}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "x-access-token": token
+            },
+            mode: "cors",
+          }
+        );
+
+        if (!response.ok) {
+          console.error(
+            `❌ HTTP error ${response.status}: ${response.statusText}`
+          );
+          return [];
+        }
+
+        const data = await response.json();
+
+        // console.log("✅ API response:", data);
+
+        document.getElementById("courseTitle").textContent = `📋 ${data.courseName || "Course"
+          }`;
+
+        // Safely extract the module list
+        const modules = Array.isArray(data?.moduleList)
+          ? data.moduleList
+          : [];
+        modules.forEach((mod) => {
+          if (mod.presentationResult) {
+            presentations.push({
+              ...mod.presentationResult,
+              title: mod.name,
+              subject: mod.description,
+              teacherNotes: mod.teacherNotesData,
+              teacherNotesResult: mod.teacherNotesResult,
+            });
+          }
+        });
+
+        debug("🎯 Loaded presentations:", presentations);
+        return modules;
+      } catch (error) {
+        console.error("🚨 Failed to load presentations:", error);
+        return [];
+      }
+    }
+
+    function debug(...args) {
+      // console.log(args);
+    }
+
+    let mirrorWindow = null;
+    let currentPresentation = null;
+    let currentSlide = 0;
+    let isPlaying = false;
+    let playInterval = null;
+    let isFullscreen = false;
+    let preloadedImages = new Map(); // Store preloaded images by presentation ID
+
+    // Initialize the application
+    function init() {
+      loadPresentations().then(() => {
+        renderPresentationList();
+      });
+    }
+
+    // Render the list of available presentations
+    function renderPresentationList() {
+      const pptList = document.getElementById("pptList");
+      pptList.innerHTML = "";
+
+      presentations.forEach((ppt) => {
+        const pptItem = document.createElement("div");
+        pptItem.className = "ppt-item";
+        pptItem.onclick = () => loadPresentation(ppt.id);
+        pptItem.id = `ppt-${ppt.id}`;
+
+        pptItem.innerHTML = `
+                    <div class="ppt-title">${ppt.title}</div>
+                    <div class="ppt-meta">${ppt.subject} • ${ppt.slides_content.length} slides</div>
+                `;
+
+        pptList.appendChild(pptItem);
+      });
+    }
+
+    // Preload all images for a presentation
+    async function loadNextSlide(nextIndex) {
+      // const nextIndex = currentSlide + 1;
+      const slideUrl = currentPresentation.slides_content[nextIndex];
+      if (!slideUrl) return false;
+
+      try {
+        const loadedImage = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve({ index: nextIndex, img, url: slideUrl });
+          img.onerror = () =>
+            reject(new Error(`Failed to load slide ${nextIndex + 1}`));
+          img.src = slideUrl;
+        });
+
+        // Reuse existing map or create one
+        let imageMap = preloadedImages.get(currentPresentation.id);
+        if (!imageMap) {
+          imageMap = new Map();
+          preloadedImages.set(currentPresentation.id, imageMap);
+        }
+
+        imageMap.set(loadedImage.index, {
+          img: loadedImage.img,
+          url: loadedImage.url,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error preloading image:", error);
+        alert(
+          `Failed to load slide ${currentSlide + 2} for "${currentPresentation.title}".`
+        );
+        return false;
+      }
+    }
+
+    // Load a specific presentation
+    async function loadPresentation(id) {
+      const presentation = presentations.find((p) => p.id === id);
+      if (!presentation) return;
+
+      // Stop any playing presentation
+      if (isPlaying) {
+        togglePresentation();
+      }
+
+      notesContainer.style.display = "none";
+      noteContent.innerHTML = ""; // clear any old notes
+
+      // Show loading indicator
+      const loadingIndicator = document.getElementById("loadingIndicator");
+      const slideViewer = document.getElementById("slideViewer");
+      loadingIndicator.classList.add("show");
+
+      if (typeof window !== "undefined" && (userRole == "candidate")) {
+        slideViewer.style.maxHeight = "100%";
+      }
+
+      // Clear current slide content
+      const existingSlide = slideViewer.querySelector(".slide");
+      if (existingSlide) {
+        existingSlide.remove();
+      }
+
+      // Hide no-presentation message
+      const noPresentation = slideViewer.querySelector(".no-presentation");
+      if (noPresentation) {
+        noPresentation.style.display = "none";
+      }
+
+      // Update UI first to show selection
+      document.querySelectorAll(".ppt-item").forEach((item) => {
+        item.classList.remove("active");
+      });
+      const selectedItem = document.getElementById(`ppt-${id}`);
+      if (selectedItem) {
+        selectedItem.classList.add("active");
+      }
+
+      // Hide loading indicator
+      loadingIndicator.classList.remove("show");
+
+      // Set current presentation and reset slide
+      currentPresentation = presentation;
+      currentSlide = 0;
+
+      // ✅ ADD THIS LINE:
+      await syncPresentationToProjector(currentPresentation);
+
+      // Update header info
+      document.getElementById(
+        "currentPptInfo"
+      ).textContent = `${presentation.title}`;
+      document.getElementById("controls").style.display = "flex";
+
+      // Render first slide and update controls
+      renderCurrentSlide();
+      updateControls();
+      updateNotes();
+    }
+
+    // Enhanced renderCurrentSlide function with video overlay support
+    function renderCurrentSlide() {
+      if (!currentPresentation) return;
+
+      const slideViewer = document.getElementById("slideViewer");
+      const preloadedImagesMap = preloadedImages.get(currentPresentation.id);
+
+      // Remove existing slide content
+      const existingSlide = slideViewer.querySelector(".slide");
+      if (existingSlide) {
+        existingSlide.remove();
+      }
+
+      // Hide other elements that might interfere
+      const noPresentation = slideViewer.querySelector(".no-presentation");
+      const loadingIndicator =
+        slideViewer.querySelector(".loading-indicator");
+      if (noPresentation) noPresentation.style.display = "none";
+      if (loadingIndicator) loadingIndicator.classList.remove("show");
+
+      // Create slide container with relative positioning for video overlay
+      const slideContainer = document.createElement("div");
+      slideContainer.className = "slide";
+      slideContainer.style.position = "relative";
+      // slideContainer.style.width = '100%';
+      // slideContainer.style.height = '100%';
+      slideContainer.style.display = "flex";
+      slideContainer.style.justifyContent = "center";
+      slideContainer.style.alignItems = "center";
+
+      // Render the slide image
+      if (preloadedImagesMap && preloadedImagesMap.has(currentSlide)) {
+        const { img } = preloadedImagesMap.get(currentSlide);
+
+        // Clone the preloaded image for display
+        const displayImg = img.cloneNode();
+        displayImg.style.width = "100%";
+        displayImg.style.height = "100%";
+        displayImg.style.objectFit = "contain";
+        displayImg.style.display = "block";
+        displayImg.alt = `Slide ${currentSlide + 1}`;
+
+        slideContainer.appendChild(displayImg);
+      } else {
+        // Fallback to regular loading if preloaded image not available
+        const slide = currentPresentation.slides_content[currentSlide];
+        const img = document.createElement("img");
+        img.src = slide;
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "contain";
+        img.style.display = "block";
+        img.alt = `Slide ${currentSlide + 1}`;
+        slideContainer.appendChild(img);
+      }
+
+      // Add videos for this slide
+      addVideosToSlide(slideContainer, currentSlide + 1); // currentSlide is 0-based, but slide numbers are 1-based
+
+      // ✅ ADD THIS LINE at the end of the function:
+      syncSlideToProjector(currentSlide);
+
+      // Update mirror window if open
+      if (mirrorWindow && !mirrorWindow.closed) {
+        updateMirrorWindow();
+      }
+
+      // Add the slide container to the viewer
+      slideViewer.appendChild(slideContainer);
+
+      // Update notes for the current slide
+      // updateNotes();
+      if (currentSlide === 0) {
+        for (let index = 1; index < currentPresentation.slides_content.length; index++) {
+          loadNextSlide(index);
+        }
+      }
+    }
+
+    // Function to add videos to a slide
+    function addVideosToSlide(slideContainer, slideNumber, muted = false) {
+      if (!currentPresentation || !currentPresentation.videos_content) return;
+
+      // Find videos for this specific slide
+      const slideVideos = currentPresentation.videos_content.filter(
+        (video) => video.slide === slideNumber
+      );
+
+      if (slideVideos.length === 0) {
+        debug(`No videos found for slide ${slideNumber}`);
+        return;
+      }
+
+      debug(`Adding ${slideVideos.length} video(s) to slide ${slideNumber}`);
+
+      // Get the slide image dimensions for scaling calculations
+      const slideImg = slideContainer.querySelector("img");
+
+      let maxTry = 3;
+
+      // Wait for the image to be properly loaded and rendered
+      const addVideoOverlays = () => {
+        // Use requestAnimationFrame to ensure the DOM has been updated
+        requestAnimationFrame(() => {
+          const containerRect = slideContainer.getBoundingClientRect();
+          const imgRect = slideImg.getBoundingClientRect();
+
+          debug("Container rect:", containerRect);
+          debug("Image rect:", imgRect);
+
+          // Check if we have valid dimensions
+          if ((imgRect.width === 0 || imgRect.height === 0) && maxTry != 0) {
+            console.warn("Image dimensions are zero, retrying...");
+            // Retry after a short delay
+            setTimeout(addVideoOverlays, 100);
+            maxTry--;
+            return;
+          }
+
+          // Calculate scaling factors based on how the image is displayed
+          let scaleX = imgRect.width / getOriginalSlideWidth();
+          let scaleY = imgRect.height / getOriginalSlideHeight();
+
+          debug(`Scaling factors: ${scaleX} x ${scaleY}`);
+
+          slideVideos.forEach((video, index) => {
+            let videoId = `video-${video.slide}-${index}`;
+            const videoElement = createVideoElement(
+              video,
+              scaleX,
+              scaleY,
+              imgRect,
+              containerRect,
+              videoId,
+              muted
+            );
+            if (!slideContainer.querySelector(`#${videoId}`)) {
+              slideContainer.appendChild(videoElement);
+            }
+          });
+        });
+      };
+
+      // Multiple ways to ensure the image is ready
+      if (slideImg.complete && slideImg.naturalWidth > 0) {
+        // Image is already loaded
+        addVideoOverlays();
+      } else {
+        // Wait for image to load
+        slideImg.onload = addVideoOverlays;
+        slideImg.onerror = () => {
+          console.error("Image failed to load");
+        };
+
+        // Fallback timeout in case onload doesn't fire
+        setTimeout(() => {
+          if (slideImg.complete && slideImg.naturalWidth > 0) {
+            addVideoOverlays();
+          }
+        }, 500);
+      }
+    }
+
+    // Function to create a video element with proper positioning
+    function createVideoElement(
+      videoData,
+      scaleX,
+      scaleY,
+      imgRect,
+      containerRect,
+      videoId,
+      muted
+    ) {
+      const video = document.createElement("video");
+
+      // Set video source
+      video.src = videoData.file;
+      video.controls = true;
+      video.preload = "metadata";
+      video.autoplay = false;
+      video.muted = false;
+      video.controlsList = "nodownload";
+      video.id = videoId;
+
+      // Calculate scaled position and size
+      const scaledX = videoData.position.x * scaleX;
+      const scaledY = videoData.position.y * scaleY;
+      const scaledWidth = videoData.position.width * scaleX;
+      const scaledHeight = videoData.position.height * scaleY;
+
+      // Calculate offset from container center to image top-left
+      const imgOffsetX = (containerRect.width - imgRect.width) / 2;
+      const imgOffsetY = (containerRect.height - imgRect.height) / 2;
+
+      // Position the video absolutely within the slide container
+      video.style.position = "absolute";
+      video.style.left = `${imgOffsetX + scaledX}px`;
+      video.style.top = `${imgOffsetY + scaledY}px`;
+      video.style.width = `${scaledWidth}px`;
+      video.style.height = `${scaledHeight}px`;
+      video.style.zIndex = "10";
+
+      // Add video metadata as data attributes
+      video.dataset.slideNumber = videoData.slide;
+      video.dataset.mediaName = videoData.mediaName;
+      video.dataset.relationshipId =
+        videoData.primaryRelationshipId || videoData.relationshipId;
+
+      // 🔹 Add sync event listeners here
+      const videoEvents = [
+        "play", // Video started playing
+        "pause", // Video paused
+        "ended", // Video reached end
+        "seeking", // User started seeking
+        "seeked", // User finished seeking
+        "timeupdate", // Current time changed during playback
+        "volumechange", // Volume or muted state changed
+        "ratechange", // Playback speed changed
+        "loadedmetadata", // Metadata loaded (width, height, duration)
+        "loadeddata", // First frame loaded
+        "canplay", // Video can start playing
+        "canplaythrough", // Video can play through to end without buffering
+        "waiting", // Playback paused due to buffering
+        "stalled", // Browser stopped fetching data
+        "suspend", // Media data fetching suspended
+        "abort", // Media loading aborted
+        "error", // Media error occurred
+      ];
+      if (!muted) {
+        videoEvents.forEach((eventType) => {
+          video.addEventListener(eventType, () => {
+            syncVideoEvent({
+              type: eventType,
+              id: videoId,
+              currentTime: video.currentTime,
+              paused: video.paused,
+              volume: video.volume,
+              muted: video.muted,
+              playbackRate: video.playbackRate,
+            });
+          });
+        });
+      }
+
+      // Add event listeners for video interactions
+      video.addEventListener("loadedmetadata", () => {
+        debug(
+          `Video loaded: ${videoData.mediaName} (${video.videoWidth}x${video.videoHeight})`
+        );
+      });
+
+      video.addEventListener("error", (e) => {
+        console.error(`Video error: ${videoData.mediaName}`, e);
+        // Show a placeholder or error message
+        video.style.backgroundColor = "rgba(255, 0, 0, 0.2)";
+        video.style.display = "flex";
+        video.style.alignItems = "center";
+        video.style.justifyContent = "center";
+        // video.innerHTML = '<div style="color: white; text-align: center; font-size: 12px;">Video Error</div>';
+      });
+
+      return video;
+    }
+
+    // Get real slide dimensions for a presentation
+    function getOriginalSlideWidth() {
+      if (!currentPresentation || !currentPresentation.slide_dimensions) {
+        console.warn("No slide dimensions available, using default");
+        return 1280; // fallback
+      }
+      return currentPresentation.slide_dimensions.width;
+    }
+
+    function getOriginalSlideHeight() {
+      if (!currentPresentation || !currentPresentation.slide_dimensions) {
+        console.warn("No slide dimensions available, using default");
+        return 720; // fallback
+      }
+      return currentPresentation.slide_dimensions.height;
+    }
+
+    // Enhanced function to handle responsive video positioning
+    function handleSlideResize() {
+      const slideContainer = document.querySelector(".slide");
+      if (!slideContainer) return;
+
+      // Remove existing videos
+      const existingVideos = slideContainer.querySelectorAll("video");
+      existingVideos.forEach((video) => video.remove());
+
+      // Re-add videos with updated positioning
+      const slideNumber = currentSlide + 1;
+      addVideosToSlide(slideContainer, slideNumber);
+    }
+
+    // Update control buttons and counter
+    function updateControls() {
+      if (!currentPresentation) return;
+
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const slideCounter = document.getElementById("slideCounter");
+
+      const fsPrevBtn = document.getElementById("fsPrevBtn");
+      const fsNextBtn = document.getElementById("fsNextBtn");
+      const fsSlideCounter = document.getElementById("fsSlideCounter");
+
+      const playBtn = document.getElementById("playBtn");
+      const fsPlayBtn = document.getElementById("fsPlayBtn");
+
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled =
+        currentSlide === currentPresentation.slides_content.length - 1;
+      playBtn.disabled =
+        currentSlide === currentPresentation.slides_content.length - 1;
+      slideCounter.textContent = `${currentSlide + 1}/${currentPresentation.slides_content.length
+        }`;
+
+      if (fsPrevBtn) fsPrevBtn.disabled = currentSlide === 0;
+      if (fsNextBtn)
+        fsNextBtn.disabled =
+          currentSlide === currentPresentation.slides_content.length - 1;
+      if (fsPlayBtn)
+        fsPlayBtn.disabled =
+          currentSlide === currentPresentation.slides_content.length - 1;
+      if (fsSlideCounter)
+        fsSlideCounter.textContent = `${currentSlide + 1}/${currentPresentation.slides_content.length
+          }`;
+    }
+
+    // Update notes for the current slide
+    function updateNotes() {
+      const notesContainer = document.getElementById("notesContainer");
+      const mirrorWin = document.getElementById("mirror-win");
+      const noteContent = document.getElementById("noteContent");
+      const slideViewer = document.querySelector("#slideViewer");
+
+      if (
+        typeof window !== "undefined" &&
+        userRole != "teacher"
+      ) {
+        notesContainer.style.display = "none";
+        noteContent.innerHTML = ""; // clear any old notes
+        return;
+      } else {
+        mirrorWin.style.display = "block";
+      }
+
+      if (currentPresentation?.teacherNotes?.length > 1 && currentPresentation.teacherNotes[0] != "") {
+        notesContainer.style.display = "block";
+        noteContent.innerHTML = currentPresentation?.teacherNotes?.[currentSlide] ?? "Not Available.";
+      } else {
+        notesContainer.style.display = "none";
+        noteContent.innerHTML = ""; // clear any old notes
+
+        if (!currentPresentation || !currentPresentation.teacherNotesResult) {
+          notesContainer.style.display = "none";
+          noteContent.innerHTML = ""; // clear any old notes
+          slideViewer.style.maxHeight = "100%";
+          return;
+        } else {
+          slideViewer.style.maxHeight = "100px";
+        }
+
+        // Show notes container
+        notesContainer.style.display = "block";
+
+        const notesUrl = currentPresentation.teacherNotesResult;
+
+        // If teacherNotes is a URL, load its HTML
+        if (notesUrl?.startsWith("http")) {
+          fetch(notesUrl)
+            .then((res) => {
+              if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+              return res.text();
+            })
+            .then((html) => {
+              noteContent.innerHTML = html;
+            })
+            .catch((err) => {
+              console.error("❌ Error loading teacher notes:", err);
+              noteContent.textContent = "Failed to load notes.";
+            });
+        } else {
+          // If teacherNotes is plain text instead of a URL
+          noteContent.textContent = notesUrl;
+        }
+      }
+    }
+
+    // Navigate to previous slide
+    function previousSlide() {
+      if (!currentPresentation || currentSlide === 0) return;
+      currentSlide--;
+
+      // ✅ ADD THIS LINE:
+      syncSlideToProjector(currentSlide);
+
+      renderCurrentSlide();
+      updateControls();
+    }
+
+    // Navigate to next slide
+    function nextSlide() {
+      if (
+        !currentPresentation ||
+        currentSlide === currentPresentation.slides_content.length - 1
+      )
+        return;
+      currentSlide++;
+
+      // ✅ ADD THIS LINE:
+      syncSlideToProjector(currentSlide);
+
+      renderCurrentSlide();
+      updateControls();
+    }
+
+    // Toggle presentation auto-play
+    function togglePresentation() {
+      const playBtn = document.getElementById("playBtn");
+      const fsPlayBtn = document.getElementById("fsPlayBtn");
+
+      if (
+        isPlaying ||
+        currentSlide == currentPresentation.slides_content.length - 1
+      ) {
+        clearInterval(playInterval);
+        isPlaying = false;
+        playBtn.innerHTML = "▶️ Play";
+        if (fsPlayBtn) fsPlayBtn.innerHTML = "▶️";
+      } else {
+        playInterval = setInterval(() => {
+          if (currentSlide < currentPresentation.slides_content.length - 1) {
+            nextSlide();
+          } else {
+            togglePresentation(); // Stop at the end
+          }
+        }, 3000); // Change slide every 3 seconds
+
+        isPlaying = true;
+        playBtn.innerHTML = "⏸️ Pause";
+        if (fsPlayBtn) fsPlayBtn.innerHTML = "⏸️";
+      }
+    }
+
+    // Toggle fullscreen mode
+    function toggleFullscreen() {
+      const viewerContainer = document.querySelector(".viewer-container");
+      const controlsDiv = document.querySelector("#controls");
+      const slideViewerDiv = document.querySelector("#slideViewer");
+      const fullscreenControls =
+        document.getElementById("fullscreenControls");
+
+      if (!isFullscreen) {
+        // Enter fullscreen
+        viewerContainer.classList.add("fullscreen-mode");
+        controlsDiv.style.display = "none";
+        fullscreenControls.style.gap = "1rem";
+        fullscreenControls.style.display = "flex";
+
+        isFullscreen = true;
+
+        // Try to use native fullscreen API
+        if (viewerContainer.requestFullscreen) {
+          viewerContainer.requestFullscreen();
+        } else if (viewerContainer.webkitRequestFullscreen) {
+          viewerContainer.webkitRequestFullscreen();
+        } else if (viewerContainer.msRequestFullscreen) {
+          viewerContainer.msRequestFullscreen();
+        }
+
+        slideViewerDiv.style.maxHeight = "100%";
+
+        // Hide controls after 3 seconds
+        setTimeout(() => {
+          if (isFullscreen) {
+            fullscreenControls.style.opacity = "0";
+          }
+        }, 3000);
+      } else {
+        // Exit fullscreen
+        viewerContainer.classList.remove("fullscreen-mode");
+        controlsDiv.style.display = "flex";
+        fullscreenControls.style.display = "none";
+
+        isFullscreen = false;
+        updateControls();
+
+        if (!currentPresentation || !currentPresentation.teacherNotesResult) {
+          slideViewer.style.maxHeight = "100%";
+        } else {
+          slideViewerDiv.style.maxHeight = "100px";
+        }
+
+        // Exit native fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    }
+
+    function openMirrorWindow() {
+      if (mirrorWindow && !mirrorWindow.closed) {
+        mirrorWindow.focus();
+        return;
+      }
+
+      mirrorWindow = window.open(
+        "/mirror.html",
+        "_blank"
+      );
+
+      // mirrorWindow = window.open(
+      //   "about:blank",
+      //   "mirrorWindow",
+      //   "width=800,height=600,left=100,top=100,resizable=yes,scrollbars=no,menubar=no,toolbar=no"
+      // );
+
+      if (mirrorWindow) {
+        setupMirrorWindow();
+        updateMirrorWindow();
+      } else {
+        alert("Popup blocked! Please allow popups for this site.");
+      }
+    }
+
+    function setupMirrorWindow() {
+      if (!mirrorWindow || mirrorWindow.closed) return;
+
+      mirrorWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Mirror Window - For Screen Mirroring</title>
+                    <style>
+                        video::-webkit-media-controls-volume-slider,
+                        video::-webkit-media-controls-mute-button {
+                            display: none !important;
+                        }
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { background: #000; display: flex; align-items: center; justify-content: center; min-height: 100vh; color: white; font-family: 'SF Pro Display', -apple-system, sans-serif; }
+                        .slide { display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; position: relative; }
+                        .slide-content { display: flex; align-items: center; justify-content: center; }
+                        .slide-content img { width: 80%; object-fit: contain; }
+                        .slide-counter { z-index: 9999; position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 15px; font-size: 14px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="slide">
+                        <div class="slide-content" id="mirrorSlideContent">
+                            <div class="welcome-message">
+                                <h2>🎓 Ready to Present</h2>
+                                <p>This window is ready for screen mirroring</p>
+                            </div>
+                        </div>
+                        <div class="slide-counter" id="mirrorSlideCounter">Ready</div>
+                    </div>
+                </body>
+                </html>
+            `);
+
+      let scriptEl = mirrorWindow.document.createElement("script");
+
+      // Add the JS code directly as text content
+      scriptEl.textContent = `
+                // Add resize listener specifically for mirror window
+                window.addEventListener('resize', () => {
+                    // Notify parent window to handle mirror resize
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.postMessage({ action: 'mirror-resize' }, '*');
+                    }
+                });
+
+                const video1 = document.querySelector("video");
+                if(video1){
+                    video1.muted = true;
+                }
+
+                window.addEventListener('message', (event) => {
+                    if (!event.data || event.data.action !== 'video-sync') return;
+
+                    const { id, type, currentTime, paused, volume, muted, playbackRate } = event.data.data;
+                    const video = document.getElementById(id);
+                    if (!video) return;
+
+                    switch (type) {
+                        case 'play':
+                            if (video.paused) video.play().catch(() => {});
+                            break;
+                        case 'pause':
+                            if (!video.paused) {
+                                video.pause();
+                            }
+                            break;
+                        case 'ended':
+                            video.pause(); // Optional: reset if needed
+                            break;
+                        case 'seeking':
+                        case 'seeked':
+                        case 'timeupdate':
+                            if (Math.abs(video.currentTime - currentTime) > 0.3) {
+                                if (video.readyState > 0) {
+                                    video.currentTime = currentTime;
+                                } else {
+                                    video.addEventListener('loadedmetadata', () => {
+                                        video.currentTime = currentTime;
+                                    }, { once: true });
+                                }
+                            }
+                            break;
+                        case 'volumechange':
+                            video.volume = volume;
+                            video.muted = muted;
+                            break;
+                        case 'ratechange':
+                            video.playbackRate = playbackRate;
+                            break;
+                        case 'loadedmetadata':
+                        case 'loadeddata':
+                        case 'canplay':
+                        case 'canplaythrough':
+                        case 'waiting':
+                        case 'stalled':
+                        case 'suspend':
+                        case 'abort':
+                        case 'error':
+                            // Optional: handle errors/logging if needed
+                            console.debug("Video event synced error");
+                            break;
+                    }
+                });
+            `;
+
+      // Append into <head> or <body> of the mirror window
+      mirrorWindow.document.body.appendChild(scriptEl);
+
+      mirrorWindow.document.close();
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.action === "mirror-resize") {
+        handleMirrorSlideResize();
+      }
+    });
+
+    // Enhanced function to handle responsive video positioning for mirror window
+    function handleMirrorSlideResize() {
+      if (!mirrorWindow || mirrorWindow.closed) return;
+
+      const mirrorSlideContainer =
+        mirrorWindow.document.getElementById("mirrorSlideContent");
+      if (!mirrorSlideContainer) return;
+
+      // Remove existing videos from mirror window
+      const existingVideos = mirrorSlideContainer.querySelectorAll("video");
+      existingVideos.forEach((video) => video.remove());
+
+      // Re-add videos with updated positioning for mirror window
+      const slideNumber = currentSlide + 1;
+      addVideosToSlide(mirrorSlideContainer, slideNumber, true);
+    }
+
+    function updateMirrorWindow() {
+      if (!mirrorWindow || mirrorWindow.closed) return;
+
+      const slide = currentPresentation.slides_content[currentSlide];
+      const contentDiv =
+        mirrorWindow.document.getElementById("mirrorSlideContent");
+      const counterDiv =
+        mirrorWindow.document.getElementById("mirrorSlideCounter");
+      if (contentDiv && counterDiv) {
+        contentDiv.innerHTML = `<img src="${slide}" alt="test">`;
+        counterDiv.textContent = `${currentSlide + 1} / ${currentPresentation.slides_content.length
+          }`;
+
+        // Add videos for this slide
+        addVideosToSlide(contentDiv, currentSlide + 1, true); // currentSlide is 0-based, but slide numbers are 1-based
+      }
+    }
+
+    function syncVideoEvent(data) {
+      if (mirrorWindow && !mirrorWindow.closed) {
+        mirrorWindow.postMessage({ action: "video-sync", data }, "*");
+      }
+
+      console.log("data", data);
+      // ✅ ADD THIS LINE:
+      syncVideoToProjector(data);
+    }
+
+    // Show controls when mouse moves in fullscreen
+    document.addEventListener("mousemove", () => {
+      if (isFullscreen) {
+        const fullscreenControls =
+          document.getElementById("fullscreenControls");
+
+        fullscreenControls.style.opacity = "1";
+
+        // Hide again after 3 seconds
+        clearTimeout(window.fullscreenControlsTimeout);
+        window.fullscreenControlsTimeout = setTimeout(() => {
+          if (isFullscreen) {
+            fullscreenControls.style.opacity = "0";
+          }
+        }, 3000);
+      }
+    });
+
+    // Handle keyboard navigation
+    document.addEventListener("keydown", (e) => {
+      if (!currentPresentation) return;
+
+      switch (e.key) {
+        case "ArrowLeft":
+          previousSlide();
+          break;
+        case "ArrowRight":
+          nextSlide();
+          break;
+        case " ":
+          e.preventDefault();
+          const activeVideo = document.querySelector(".slide video");
+          if (activeVideo) {
+            e.preventDefault();
+            if (activeVideo.paused) {
+              activeVideo.play();
+            } else {
+              activeVideo.pause();
+            }
+          } else {
+            togglePresentation();
+          }
+          break;
+        case "Escape":
+          if (isFullscreen) {
+            toggleFullscreen();
+          }
+          break;
+        case "F11":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+      }
+    });
+
+    // Handle fullscreen change events
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement && isFullscreen) {
+        toggleFullscreen();
+      }
+    });
+
+    // Prevent right-click context menu to discourage downloads
+    document.addEventListener("contextmenu", (e) => {
+      // e.preventDefault();
+    });
+
+    // Disable certain keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+      // Disable Ctrl+S (Save), Ctrl+A (Select All), etc.
+      if (e.ctrlKey && (e.key === "s" || e.key === "a" || e.key === "c")) {
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    // Add resize listener for responsive behavior
+    window.addEventListener("resize", handleSlideResize);
+  </script>
+</body>
+
+</html>

@@ -12,8 +12,8 @@
   },
   "build": {
     "appId": "com.cleveratti.presentationviewer",
-    "productName": "Presentation Viewer Pro",
-    "copyright": "Copyright © 2026 Ankit Yadav",
+    "productName": "Cleveratti Presentation Viewer",
+    "copyright": "Copyright © 2026 Cleveratti Skills",
     "directories": {
       "output": "dist"
     },
@@ -33,7 +33,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Presentation Viewer Pro"
+      "shortcutName": "Cleveratti Presentation Viewer"
     },
     "protocols": [
       {

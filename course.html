@@ -598,6 +598,8 @@
         courseId = params?.courseId;
         token = params?.token;
         userRole = params?.role;
+
+        init();
       });
     }
 
@@ -1127,7 +1129,7 @@
     // Update notes for the current slide
     function updateNotes() {
       const notesContainer = document.getElementById("notesContainer");
-      const mirrorWin = document.getElementById("mirror-win");
+      // const mirrorWin = document.getElementById("mirror-win");
       const noteContent = document.getElementById("noteContent");
       const slideViewer = document.querySelector("#slideViewer");
 
@@ -1139,7 +1141,7 @@
         noteContent.innerHTML = ""; // clear any old notes
         return;
       } else {
-        mirrorWin.style.display = "block";
+        // mirrorWin.style.display = "block";
       }
 
       if (currentPresentation?.teacherNotes?.length > 1 && currentPresentation.teacherNotes[0] != "") {
@@ -1484,7 +1486,6 @@
         mirrorWindow.postMessage({ action: "video-sync", data }, "*");
       }
 
-      console.log("data", data);
       // ✅ ADD THIS LINE:
       syncVideoToProjector(data);
     }
